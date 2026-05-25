@@ -46,6 +46,12 @@ class MealieClient:
             payload = response.json()
             return payload.get("items", payload if isinstance(payload, list) else [])
 
+    async def get_recipe_detail(self, recipe_id: str) -> dict[str, Any]:
+        async with self._client() as http:
+            response = await http.get(f"/api/recipes/{recipe_id}")
+            response.raise_for_status()
+            return response.json()
+
     async def create_dinner_plan(self, *, meal_date: date, recipe_id: str, title: str, text: str) -> dict[str, Any]:
         payload = {
             "date": meal_date.isoformat(),

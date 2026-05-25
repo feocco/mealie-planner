@@ -68,3 +68,35 @@ def test_mealie_client_ignores_ambient_proxy_environment() -> None:
     http = client._client()
 
     assert http.trust_env is False
+
+
+@pytest.mark.asyncio
+async def test_mealie_client_fetches_recipe_detail_without_losing_ingredient_text() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/recipes/r1"
+        return httpx.Response(
+            200,
+            json={
+                "id": "r1",
+                "name": "Tofu Tikka Masala",
+                "recipeIngredient": [
+                    {
+                        "quantity": 1.0,
+                        "unit": {"id": "u1", "name": "block"},
+                        "food": {"id": "f1", "name": "tofu"},
+                        "note": "pressed",
+                        "display": "1 block tofu, pressed",
+                        "originalText": "1 block tofu, pressed",
+                    }
+                ],
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport, base_url="http://mealie.test") as http:
+        client = MealieClient(base_url="http://mealie.test", api_token="token", http=http)
+        detail = await client.get_recipe_detail("r1")
+
+    ingredient = detail["recipeIngredient"][0]
+    assert ingredient["display"] == "1 block tofu, pressed"
+    assert ingredient["originalText"] == "1 block tofu, pressed"

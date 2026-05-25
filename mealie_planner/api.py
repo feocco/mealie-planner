@@ -40,6 +40,15 @@ def create_app(service: PlannerService, *, start_action_listener: bool = False) 
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="plan not found") from exc
 
+    @app.get("/v1/plans/{plan_id}/ingredients")
+    async def get_plan_ingredients(plan_id: str):
+        try:
+            return await service.plan_ingredients(plan_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="plan not found") from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
     @app.post("/v1/plans/{plan_id}/accept")
     async def accept(plan_id: str):
         return await service.accept(plan_id)

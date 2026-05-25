@@ -11,6 +11,61 @@ class FakeRecipeSource:
         self.created = []
         self.deleted = []
         self.existing = []
+        self.detail_calls = []
+        self.details = {
+            "r1": {
+                "id": "r1",
+                "name": "Tofu Tikka Masala",
+                "recipeIngredient": [
+                    {
+                        "quantity": 1.0,
+                        "unit": {"id": "u1", "name": "block"},
+                        "food": {"id": "f1", "name": "tofu"},
+                        "note": "pressed",
+                        "display": "1 block tofu pressed",
+                        "originalText": "1 block tofu, pressed",
+                    },
+                    {
+                        "quantity": 1.0,
+                        "unit": {"id": "u2", "name": "cup"},
+                        "food": {"id": "f2", "name": "rice"},
+                        "note": None,
+                        "display": "1 cup rice",
+                        "originalText": "1 cup rice",
+                    },
+                    {
+                        "quantity": None,
+                        "unit": None,
+                        "food": None,
+                        "note": "salt to taste",
+                        "display": "salt to taste",
+                        "originalText": "salt to taste",
+                    },
+                ],
+            },
+            "r2": {
+                "id": "r2",
+                "name": "Soba Noodle Salad",
+                "recipeIngredient": [
+                    {
+                        "quantity": 2.0,
+                        "unit": {"id": "u1", "name": "block"},
+                        "food": {"id": "f1", "name": "tofu"},
+                        "note": "pressed",
+                        "display": "2 block tofu pressed",
+                        "originalText": "2 blocks tofu, pressed",
+                    },
+                    {
+                        "quantity": 1.0,
+                        "unit": {"id": "u3", "name": "tablespoon"},
+                        "food": {"id": "f3", "name": "sesame oil"},
+                        "note": None,
+                        "display": "1 tablespoon sesame oil",
+                        "originalText": "1 tablespoon sesame oil",
+                    },
+                ],
+            },
+        }
 
     async def list_recipes(self):
         return [
@@ -47,6 +102,10 @@ class FakeRecipeSource:
     async def delete_mealplan(self, entry_id):
         self.deleted.append(entry_id)
         return None
+
+    async def get_recipe_detail(self, recipe_id):
+        self.detail_calls.append(recipe_id)
+        return self.details[recipe_id]
 
 
 class FakeSelector:
@@ -223,3 +282,68 @@ async def test_rejects_stale_wrong_stage_actions(tmp_path) -> None:
 
     with pytest.raises(RuntimeError, match="Joe can only accept"):
         await service.accept(draft.plan_id, reviewer="joe")
+
+
+@pytest.mark.asyncio
+async def test_accepted_plan_ingredients_include_grouped_and_consolidated_views(tmp_path) -> None:
+    recipe_source = FakeRecipeSource()
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=recipe_source,
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=FakeNotifier(),
+    )
+    draft = await service.suggest(SuggestRequest(start_date=date(2026, 5, 25), dinner_count=2))
+    await service.accept(draft.plan_id, reviewer="joe")
+
+    result = await service.plan_ingredients(draft.plan_id)
+
+    assert result["plan_id"] == draft.plan_id
+    assert result["status"] == "joe_accepted"
+    assert [item["recipe_id"] for item in result["by_recipe"]] == ["r1", "r2"]
+    assert result["by_recipe"][0]["ingredients"][0]["originalText"] == "1 block tofu, pressed"
+    tofu = next(item for item in result["consolidated"] if item["food_name"] == "tofu")
+    assert tofu["quantity"] == 3.0
+    assert tofu["unit_name"] == "block"
+    assert tofu["note"] == "pressed"
+    assert tofu["source_recipes"] == ["Tofu Tikka Masala", "Soba Noodle Salad"]
+
+
+@pytest.mark.asyncio
+async def test_draft_plan_ingredients_are_rejected_without_fetching_recipe_details(tmp_path) -> None:
+    recipe_source = FakeRecipeSource()
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=recipe_source,
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=FakeNotifier(),
+    )
+    draft = await service.suggest(SuggestRequest(start_date=date(2026, 5, 25), dinner_count=1))
+
+    with pytest.raises(RuntimeError, match="accepted"):
+        await service.plan_ingredients(draft.plan_id)
+
+    assert recipe_source.detail_calls == []
+
+
+@pytest.mark.asyncio
+async def test_consolidation_keeps_mismatched_units_and_unstructured_rows_separate(tmp_path) -> None:
+    recipe_source = FakeRecipeSource()
+    recipe_source.details["r2"]["recipeIngredient"][0]["unit"] = {"id": "u4", "name": "package"}
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=recipe_source,
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=FakeNotifier(),
+    )
+    draft = await service.suggest(SuggestRequest(start_date=date(2026, 5, 25), dinner_count=2))
+    await service.accept(draft.plan_id, reviewer="joe")
+
+    result = await service.plan_ingredients(draft.plan_id)
+
+    tofu_rows = [item for item in result["consolidated"] if item["food_name"] == "tofu"]
+    assert [item["unit_name"] for item in tofu_rows] == ["block", "package"]
+    assert any(item["display"] == "salt to taste" and item["quantity"] is None for item in result["consolidated"])

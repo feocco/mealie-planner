@@ -4,7 +4,7 @@ import asyncio
 
 from homelab import notify_joe
 
-from mealie_planner.actions import ACCEPT_PREFIX, DISMISS_PREFIX, REGENERATE_PREFIX, REPLY_PREFIX, action
+from mealie_planner.actions import ACCEPT_PREFIX, REGENERATE_PREFIX, REPLY_PREFIX, action
 from mealie_planner.selection.schema import MealPlanDraft
 
 
@@ -23,7 +23,6 @@ class PhoneNotifier:
             buttons=[
                 {"title": "Accept", "action": action(ACCEPT_PREFIX, draft.plan_id)},
                 {"title": "Regenerate", "action": action(REGENERATE_PREFIX, draft.plan_id)},
-                {"title": "Dismiss", "action": action(DISMISS_PREFIX, draft.plan_id)},
                 {
                     "title": "Reply",
                     "action": action(REPLY_PREFIX, draft.plan_id),
@@ -40,4 +39,3 @@ def format_plan(draft: MealPlanDraft) -> str:
     lines.append("")
     lines.append(draft.rationale)
     return "\n".join(lines)
-

@@ -71,6 +71,7 @@ class MealieClient:
             base_url=self.base_url,
             headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
             timeout=30,
+            trust_env=False,
         )
 
 

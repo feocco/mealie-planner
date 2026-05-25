@@ -61,3 +61,10 @@ async def test_mealie_client_creates_dinner_plan_entry() -> None:
     assert requests[0].url.path == "/api/households/mealplans"
     assert requests[0].read() == b'{"date":"2026-05-25","entryType":"dinner","title":"Tofu Tikka Masala","text":"Generated","recipeId":"r1"}'
 
+
+def test_mealie_client_ignores_ambient_proxy_environment() -> None:
+    client = MealieClient(base_url="http://host.docker.internal:9925", api_token="token")
+
+    http = client._client()
+
+    assert http.trust_env is False

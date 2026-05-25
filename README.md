@@ -1,6 +1,6 @@
 # Mealie Planner
 
-OpenAI-assisted dinner planner for Joe's Mealie instance. V1 proposes dinner plans from compact Mealie recipe metadata, sends an actionable phone notification through `homelab-functions`, and writes to Mealie only after acceptance.
+OpenAI-assisted dinner planner for Joe's Mealie instance. V1 proposes dinner plans from compact Mealie recipe metadata, sends Joe an actionable phone notification through `homelab-functions`, hands Joe's accepted plan to Jess for review, and writes only accepted versions to Mealie.
 
 ## Quickstart
 
@@ -21,11 +21,10 @@ The service exposes:
 - `POST /v1/plans/{plan_id}/regenerate`
 - `POST /v1/plans/{plan_id}/dismiss`
 
-Draft plans stay local in SQLite under `DATA_DIR`. Mealie meal planner entries are created only by the accept endpoint or Accept notification action.
+Draft plans stay local in SQLite under `DATA_DIR`. Joe's Accept writes the first planner-owned dinner entries, then Jess can modify and accept the final version. Jess's Accept replaces only entries created for the same planner plan and notifies Joe.
 
 ## Docs
 
 - [Architecture](docs/architecture.md)
 - [Configuration](docs/configuration.md)
 - [Security](docs/security.md)
-

@@ -12,28 +12,28 @@ class FakePlanner:
         self.regenerated = []
         self.dismissed = []
 
-    async def accept(self, plan_id):
-        self.accepted.append(plan_id)
+    async def accept(self, plan_id, *, reviewer="joe"):
+        self.accepted.append((plan_id, reviewer))
 
-    async def regenerate(self, plan_id, feedback=None):
-        self.regenerated.append((plan_id, feedback))
+    async def regenerate(self, plan_id, feedback=None, *, reviewer="joe"):
+        self.regenerated.append((plan_id, feedback, reviewer))
 
     async def dismiss(self, plan_id):
         self.dismissed.append(plan_id)
 
 
 @pytest.mark.asyncio
-async def test_action_handler_routes_accept_regenerate_dismiss_and_reply() -> None:
+async def test_action_handler_routes_stage_aware_accept_regenerate_dismiss_and_reply() -> None:
     planner = FakePlanner()
     handler = ActionHandler(planner)
 
-    await handler.handle_event({"event_type": "mobile_app_notification_action", "data": {"action": "MEALIE_PLANNER_ACCEPT::p1"}})
-    await handler.handle_event({"event_type": "mobile_app_notification_action", "data": {"action": "MEALIE_PLANNER_REGENERATE::p2"}})
+    await handler.handle_event({"event_type": "mobile_app_notification_action", "data": {"action": "MEALIE_PLANNER_ACCEPT_JOE::p1"}})
+    await handler.handle_event({"event_type": "mobile_app_notification_action", "data": {"action": "MEALIE_PLANNER_REGENERATE_JESS::p2"}})
     await handler.handle_event({"event_type": "mobile_app_notification_action", "data": {"action": "MEALIE_PLANNER_DISMISS::p3"}})
-    await handler.handle_event({"event_type": "mobile_app_notification_action", "data": {"action": "MEALIE_PLANNER_REPLY::p4", "reply_text": "less pasta"}})
+    await handler.handle_event({"event_type": "mobile_app_notification_action", "data": {"action": "MEALIE_PLANNER_REPLY_JESS::p4", "reply_text": "less pasta"}})
 
-    assert planner.accepted == ["p1"]
-    assert planner.regenerated == [("p2", None), ("p4", "less pasta")]
+    assert planner.accepted == [("p1", "joe")]
+    assert planner.regenerated == [("p2", None, "jess"), ("p4", "less pasta", "jess")]
     assert planner.dismissed == ["p3"]
 
 
@@ -54,4 +54,3 @@ async def test_weather_provider_returns_explicit_unavailable_context() -> None:
     assert weather.weather_unavailable is True
     assert weather.location == "Auburn, NY"
     assert weather.daily == []
-

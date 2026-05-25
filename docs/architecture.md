@@ -4,7 +4,7 @@ Mealie Planner is a small FastAPI service with four boundaries:
 
 1. Mealie API reads recipe metadata and writes accepted dinner plans.
 2. Home Assistant provides weather context and mobile notification action events.
-3. `homelab-functions` sends Joe's phone notifications.
+3. `homelab-functions` sends Joe and Jess phone notifications.
 4. OpenAI chooses the plan from compact candidate recipe metadata.
 
 ```mermaid
@@ -13,7 +13,7 @@ flowchart LR
   API --> Mealie["Mealie API"]
   API --> Selector["OpenAI selector"]
   Selector --> OpenAI["OpenAI Responses API"]
-  API --> Notify["homelab-functions notify_joe"]
+  API --> Notify["homelab-functions notify_joe / notify_jess"]
   HA["Home Assistant WebSocket"] --> API
   HA --> Weather["Weather forecast"]
 ```
@@ -26,5 +26,6 @@ The core planning logic is intentionally isolated under `mealie_planner/selectio
 
 The OpenAI request excludes full recipe instructions and full ingredient lists by default. It sends recipe id, slug, title, categories, tags, tools, servings, and a small ingredient-anchor list.
 
-Notification buttons are not handled by `homelab-functions`; the app listens directly to Home Assistant `mobile_app_notification_action` events and routes Accept, Regenerate, Dismiss, and typed replies.
+Notification buttons are not handled by `homelab-functions`; the app listens directly to Home Assistant `mobile_app_notification_action` events and routes stage-aware Accept, Regenerate, Dismiss, and typed replies.
 
+The approval flow is sequential. Joe receives the first draft. Joe's Accept writes planner-owned dinner entries to Mealie and sends the accepted plan to Jess. Jess can regenerate from typed feedback, and Jess's Accept replaces only the entries tracked for that same planner plan before notifying Joe.

@@ -54,7 +54,7 @@ class PlannerStore:
         request: dict[str, Any],
         draft: dict[str, Any],
         parent_plan_id: str | None = None,
-        status: str = "draft",
+        status: str = "draft_for_joe",
     ) -> None:
         now = datetime.now(timezone.utc).isoformat()
         with self._connect() as db:
@@ -88,11 +88,11 @@ class PlannerStore:
             rows = db.execute("select text from feedback where plan_id = ? order by id", (plan_id,)).fetchall()
         return [str(row["text"]) for row in rows]
 
-    def mark_accepted(self, plan_id: str, entries: list[dict[str, str]]) -> None:
+    def mark_accepted(self, plan_id: str, entries: list[dict[str, str]], *, status: str = "accepted") -> None:
         with self._connect() as db:
             db.execute(
                 "update plans set status = ?, accepted_at = ? where plan_id = ?",
-                ("accepted", datetime.now(timezone.utc).isoformat(), plan_id),
+                (status, datetime.now(timezone.utc).isoformat(), plan_id),
             )
             for entry in entries:
                 db.execute(
@@ -109,3 +109,26 @@ class PlannerStore:
             rows = db.execute("select entry_id from mealie_entries where plan_id = ?", (plan_id,)).fetchall()
         return [str(row["entry_id"]) for row in rows]
 
+    def list_created_entries_for_family(self, plan_id: str) -> list[str]:
+        plan_ids = self.plan_family(plan_id)
+        if not plan_ids:
+            return []
+        placeholders = ",".join("?" for _ in plan_ids)
+        with self._connect() as db:
+            rows = db.execute(
+                f"select entry_id from mealie_entries where plan_id in ({placeholders}) order by rowid",
+                plan_ids,
+            ).fetchall()
+        return [str(row["entry_id"]) for row in rows]
+
+    def plan_family(self, plan_id: str) -> list[str]:
+        family: list[str] = []
+        current: str | None = plan_id
+        with self._connect() as db:
+            while current:
+                family.append(current)
+                row = db.execute("select parent_plan_id from plans where plan_id = ?", (current,)).fetchone()
+                if row is None:
+                    break
+                current = row["parent_plan_id"]
+        return family

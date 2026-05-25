@@ -180,6 +180,10 @@ class PlannerService:
             "consolidated": consolidate_ingredients(by_recipe),
         }
 
+    async def latest_plan_ingredients(self) -> dict[str, Any]:
+        latest = self.store.get_latest_accepted_plan()
+        return await self.plan_ingredients(str(latest["plan_id"]))
+
     async def dismiss(self, plan_id: str) -> None:
         self.store.mark_dismissed(plan_id)
 

@@ -45,3 +45,41 @@ def test_api_plan_ingredients_requires_accepted_plan(tmp_path) -> None:
 
     assert response.status_code == 409
     assert "accepted" in response.json()["detail"]
+
+
+def test_api_latest_plan_ingredients_returns_latest_accepted_plan(tmp_path) -> None:
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=FakeRecipeSource(),
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=FakeNotifier(),
+    )
+    client = TestClient(create_app(service))
+    plan_id = client.post(
+        "/v1/plans/suggest",
+        json={"start_date": date(2026, 5, 25).isoformat(), "dinner_count": 1},
+    ).json()["plan_id"]
+    assert client.post(f"/v1/plans/{plan_id}/accept").status_code == 200
+
+    response = client.get("/v1/plans/latest/ingredients")
+
+    assert response.status_code == 200
+    assert response.json()["plan_id"] == plan_id
+    assert response.json()["consolidated"][0]["food_name"] == "tofu"
+
+
+def test_api_latest_plan_ingredients_returns_404_without_accepted_plan(tmp_path) -> None:
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=FakeRecipeSource(),
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=FakeNotifier(),
+    )
+    client = TestClient(create_app(service))
+
+    response = client.get("/v1/plans/latest/ingredients")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "accepted plan not found"

@@ -76,6 +76,23 @@ class PlannerStore:
         result["draft"] = json.loads(result.pop("draft_json"))
         return result
 
+    def get_latest_accepted_plan(self) -> dict[str, Any]:
+        with self._connect() as db:
+            row = db.execute(
+                """
+                select * from plans
+                where status in ('joe_accepted', 'jess_accepted')
+                order by accepted_at desc, created_at desc
+                limit 1
+                """
+            ).fetchone()
+        if row is None:
+            raise KeyError("latest accepted plan")
+        result = dict(row)
+        result["request"] = json.loads(result.pop("request_json"))
+        result["draft"] = json.loads(result.pop("draft_json"))
+        return result
+
     def record_feedback(self, plan_id: str, text: str) -> None:
         with self._connect() as db:
             db.execute(

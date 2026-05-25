@@ -31,6 +31,7 @@ or create grocery lists.
 
 ## Docs
 
+- [API Usage](docs/api.md)
 - [Architecture](docs/architecture.md)
 - [Configuration](docs/configuration.md)
 - [Security](docs/security.md)

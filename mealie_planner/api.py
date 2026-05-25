@@ -33,6 +33,15 @@ def create_app(service: PlannerService, *, start_action_listener: bool = False) 
     async def suggest(request: SuggestRequest):
         return await service.suggest(request)
 
+    @app.get("/v1/plans/latest/ingredients")
+    async def get_latest_plan_ingredients():
+        try:
+            return await service.latest_plan_ingredients()
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="accepted plan not found") from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
     @app.get("/v1/plans/{plan_id}")
     async def get_plan(plan_id: str):
         try:

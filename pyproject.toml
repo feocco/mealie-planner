@@ -1,0 +1,35 @@
+[project]
+name = "mealie-planner"
+version = "0.1.0"
+description = "OpenAI-assisted dinner planner for Mealie."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115.0",
+  "homelab-functions @ https://github.com/feocco/homelab-functions/archive/refs/heads/main.zip",
+  "httpx>=0.27.0",
+  "openai>=1.99.0",
+  "pydantic>=2.8.0",
+  "python-dotenv>=1.0.0",
+  "uvicorn[standard]>=0.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "pytest-asyncio>=0.23.0",
+]
+
+[project.scripts]
+mealie-planner = "mealie_planner.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["mealie_planner*"]
+

@@ -27,6 +27,39 @@ def test_api_suggest_and_get_plan(tmp_path) -> None:
     assert client.get(f"/v1/plans/{plan_id}").json()["plan_id"] == plan_id
 
 
+def test_api_recipe_candidates_are_read_only(tmp_path) -> None:
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=FakeRecipeSource(),
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=FakeNotifier(),
+    )
+    client = TestClient(create_app(service))
+
+    response = client.get("/v1/recipes/candidates")
+
+    assert response.status_code == 200
+    assert [item["title"] for item in response.json()["recipes"]] == ["Tofu Tikka Masala", "Soba Noodle Salad"]
+    assert response.json()["recipes"][0]["url"] == "https://mealie.feocco.com/g/home/r/tofu-tikka-masala"
+
+
+def test_api_recipe_candidates_can_include_ingredients(tmp_path) -> None:
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=FakeRecipeSource(),
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=FakeNotifier(),
+    )
+    client = TestClient(create_app(service))
+
+    response = client.get("/v1/recipes/candidates?include_ingredients=true")
+
+    assert response.status_code == 200
+    assert response.json()["recipes"][0]["ingredients"][0]["originalText"] == "1 block tofu, pressed"
+
+
 def test_api_plan_ingredients_requires_accepted_plan(tmp_path) -> None:
     service = PlannerService.for_testing(
         data_dir=tmp_path,

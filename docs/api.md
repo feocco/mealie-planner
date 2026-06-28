@@ -3,6 +3,13 @@
 Mealie Planner is an internal FastAPI service. In production, agents should call
 the Mac mini planner service, not the Cloudflare-protected Mealie UI hostname.
 
+## Recipes
+
+- `GET /v1/recipes/candidates` returns compact Mealie recipe metadata for planning reviews.
+- `GET /v1/recipes/candidates?include_ingredients=true` also returns normalized recipe ingredients.
+- The response includes title, slug/id, categories, tags, tools, servings, ingredient anchors, and a Mealie recipe URL.
+- This endpoint is read-only. It does not create drafts, send notifications, write meal-plan entries, or tag recipes.
+
 ## Plan Workflow
 
 - `POST /v1/plans/suggest` creates a draft and sends the first notification.

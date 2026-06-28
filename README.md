@@ -15,6 +15,7 @@ cp .env.example .env.local
 The service exposes:
 
 - `GET /health`
+- `GET /v1/recipes/candidates`
 - `POST /v1/plans/suggest`
 - `GET /v1/plans/{plan_id}`
 - `GET /v1/plans/{plan_id}/ingredients`
@@ -23,6 +24,11 @@ The service exposes:
 - `POST /v1/plans/{plan_id}/dismiss`
 
 Draft plans stay local in SQLite under `DATA_DIR`. Joe's Accept writes the first planner-owned dinner entries, then Jess can modify and accept the final version. Jess's Accept replaces only entries created for the same planner plan and notifies Joe.
+
+The recipe candidates endpoint is read-only and returns compact recipe metadata
+for review and planning without creating drafts, sending notifications, or
+writing Mealie meal-plan entries. Add `include_ingredients=true` to include
+normalized recipe ingredients for grocery planning.
 
 The ingredients endpoint is read-only and intended for manual testing after a
 plan is accepted. It returns ingredients grouped by selected recipe plus a

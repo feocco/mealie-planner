@@ -20,6 +20,9 @@ class SuggestRequest(BaseModel):
     guidance: str = ""
 
 
+MEALIE_RECIPE_URL_BASE = "https://mealie.feocco.com/g/home/r"
+
+
 class PlannerService:
     def __init__(
         self,
@@ -91,6 +94,29 @@ class PlannerService:
         if self.notifier is not None:
             await self.notifier.send_plan(draft, recipient=recipient)
         return draft
+
+    async def recipe_candidates(self, *, include_ingredients: bool = False) -> dict[str, Any]:
+        recipes = await self.recipe_source.list_recipes()
+        rows: list[dict[str, Any]] = []
+        for item in recipes:
+            row = {
+                "id": item.id,
+                "slug": item.slug,
+                "title": item.title,
+                "categories": item.categories,
+                "tags": item.tags,
+                "tools": item.tools,
+                "servings": item.servings,
+                "ingredient_anchors": item.ingredient_anchors,
+                "url": f"{MEALIE_RECIPE_URL_BASE}/{item.slug}",
+            }
+            if include_ingredients:
+                detail = await self.recipe_source.get_recipe_detail(item.id)
+                row["ingredients"] = normalize_ingredients(detail.get("recipeIngredient") or [])
+            rows.append(row)
+        return {
+            "recipes": rows,
+        }
 
     async def regenerate(self, plan_id: str, feedback: str | None = None, *, reviewer: str = "joe") -> MealPlanDraft:
         original = self.store.get_plan(plan_id)

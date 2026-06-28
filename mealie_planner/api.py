@@ -33,6 +33,10 @@ def create_app(service: PlannerService, *, start_action_listener: bool = False) 
     async def suggest(request: SuggestRequest):
         return await service.suggest(request)
 
+    @app.get("/v1/recipes/candidates")
+    async def get_recipe_candidates(include_ingredients: bool = False):
+        return await service.recipe_candidates(include_ingredients=include_ingredients)
+
     @app.get("/v1/plans/latest/ingredients")
     async def get_latest_plan_ingredients():
         try:

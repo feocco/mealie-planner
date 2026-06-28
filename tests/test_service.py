@@ -145,6 +145,47 @@ class FakeNotifier:
 
 
 @pytest.mark.asyncio
+async def test_recipe_candidates_are_read_only(tmp_path) -> None:
+    recipe_source = FakeRecipeSource()
+    notifier = FakeNotifier()
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=recipe_source,
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=notifier,
+    )
+
+    result = await service.recipe_candidates()
+
+    assert [item["title"] for item in result["recipes"]] == ["Tofu Tikka Masala", "Soba Noodle Salad"]
+    assert result["recipes"][0]["url"] == "https://mealie.feocco.com/g/home/r/tofu-tikka-masala"
+    assert result["recipes"][0]["ingredient_anchors"] == ["tofu"]
+    assert notifier.sent == []
+    assert recipe_source.created == []
+    assert recipe_source.deleted == []
+    assert recipe_source.detail_calls == []
+
+
+@pytest.mark.asyncio
+async def test_recipe_candidates_can_include_ingredients(tmp_path) -> None:
+    recipe_source = FakeRecipeSource()
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=recipe_source,
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=FakeNotifier(),
+    )
+
+    result = await service.recipe_candidates(include_ingredients=True)
+
+    assert recipe_source.detail_calls == ["r1", "r2"]
+    assert result["recipes"][0]["ingredients"][0]["originalText"] == "1 block tofu, pressed"
+    assert result["recipes"][1]["ingredients"][0]["food"]["name"] == "tofu"
+
+
+@pytest.mark.asyncio
 async def test_suggest_records_draft_and_sends_notification(tmp_path) -> None:
     service = PlannerService.for_testing(
         data_dir=tmp_path,

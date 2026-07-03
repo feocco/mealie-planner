@@ -83,3 +83,40 @@ def test_api_latest_plan_ingredients_returns_404_without_accepted_plan(tmp_path)
 
     assert response.status_code == 404
     assert response.json()["detail"] == "accepted plan not found"
+
+
+def test_api_docs_serves_html(tmp_path) -> None:
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=FakeRecipeSource(),
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=FakeNotifier(),
+    )
+    client = TestClient(create_app(service))
+
+    response = client.get("/docs")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "<!DOCTYPE html>" in response.text
+
+
+def test_api_openapi_serves_openapi_31_json(tmp_path) -> None:
+    service = PlannerService.for_testing(
+        data_dir=tmp_path,
+        recipe_source=FakeRecipeSource(),
+        selector=FakeSelector(),
+        weather=FakeWeather(),
+        notifier=FakeNotifier(),
+    )
+    client = TestClient(create_app(service))
+
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    payload = response.json()
+    assert payload["openapi"] == "3.1.0"
+    assert payload["info"]["title"] == "Mealie Planner"
+    assert "/health" in payload["paths"]

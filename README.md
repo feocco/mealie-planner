@@ -14,6 +14,8 @@ cp .env.example .env.local
 
 The service exposes:
 
+- `GET /docs`
+- `GET /openapi.json`
 - `GET /health`
 - `POST /v1/plans/suggest`
 - `GET /v1/plans/{plan_id}`
